@@ -114,7 +114,7 @@ class GapFinder:
         )
 
         self.calendar_gaps = self.upcoming_events[['end', 'time_to_next_meeting']]
-        self.calendar_gaps.rename({'end': 'gap_start'}, inplace=True, axis=1)
+        self.calendar_gaps.rename(columns={'end': 'gap_start'}, inplace=True)
         # Only look at gaps with a relevant length
         self.calendar_gaps = self.calendar_gaps[self.calendar_gaps['time_to_next_meeting'] >= DEFAULT_MEETING_DURATION]
 
@@ -139,4 +139,3 @@ class GapFinder:
         self.get_calendar_events()
         self.process_data()
         self.format_result()
-
