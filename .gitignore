@@ -130,3 +130,7 @@ dmypy.json
 
 # Pycharm
 .idea/*
+
+# Google OAuth credentials
+credentials.json
+token.pickle

@@ -13,3 +13,8 @@ It's meant to be a script that helps me with a task I personally find annoying. 
 takes 5 min to do everytime, you do it once per month maybe and there's the nagging feeling that you could
 sink a couple of hours into solving it for yourself which won't have a great ROI, but the nagging feeling
 goes away.
+
+## Google Credentials handling
+
+In order for the OAuth to work, you have to have a credentials.json file in the root folder of the repo, to
+generate this file, follow the instructions detailed [HERE](https://google-calendar-simple-api.readthedocs.io/en/latest/getting_started.html#getting-started)
