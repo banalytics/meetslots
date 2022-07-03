@@ -1,6 +1,8 @@
+import argparse
 import calendar
 import pyperclip
 from datetime import datetime, timedelta
+from dateutil.parser import parse
 import pandas as pd
 from gcsa.google_calendar import GoogleCalendar
 
@@ -139,3 +141,70 @@ class GapFinder:
         self.get_calendar_events()
         self.process_data()
         self.format_result()
+
+
+def mkdatetime(datestr: str) -> datetime:
+    '''
+    Parses out a date from input string
+    :param datestr:
+    :return:
+    '''
+    try:
+        return parse(datestr)
+    except ValueError:
+        raise ValueError('Incorrect Date String')
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--start-time',
+                        help='Min time from when to provide scheduling slots',
+                        type=mkdatetime,
+                        required=False)
+    parser.add_argument('--end-time',
+                        help='Min time from when to provide scheduling slots',
+                        type=mkdatetime,
+                        required=False)
+    parser.add_argument('--next-weeks',
+                        help='Number of weeks from now for when to provide slots',
+                        type=int,
+                        required=False)
+    parser.add_argument('--meeting-duration',
+                        help='Expected meeting duration in minutes, defaults to 30',
+                        type=int,
+                        default=30,
+                        required=False)
+    parser.add_argument('--email',
+                        help='Email from which to pull events from',
+                        type=str,
+                        required=True)
+
+    args = parser.parse_args()
+    args = vars(args)
+
+    if not args['start_time'] and not args['end_time'] and not args['next_weeks']:
+        raise ValueError(
+            'No valid timeframe provided, please provide a start '
+            'and an end time or a number of next weeks for schedulling'
+        )
+    elif args['start_time'] in args.keys() and args['end_time'] in args.keys() and args['next-weeks'] in args.keys():
+        # Technically, we could check if these two are not the same, but with the fact that datetime has its intervals
+        # but let's not deal with that for now
+        raise ValueError(
+            'You provided conflicting information for date ranges by a combination of '
+            'start/end time and next weeks to schedule'
+        )
+    elif args['start_time'] and args['end_time']:
+        start_time = args['start_time']
+        end_time = args['end_time']
+    else:
+        start_time = datetime.now()
+        end_time = datetime.now() + timedelta(days=7*args['next_weeks'])
+
+    gap_finder = GapFinder(
+        email=args['email'],
+        start_time=start_time,
+        end_time=end_time
+    )
+
+    gap_finder.find_suitable_gaps()
