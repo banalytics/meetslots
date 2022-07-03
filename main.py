@@ -1,5 +1,6 @@
 import os
 import calendar
+import pyperclip
 from datetime import datetime, timedelta
 import pandas as pd
 from gcsa.google_calendar import GoogleCalendar
@@ -101,10 +102,11 @@ upcoming_events['time_to_next_meeting'] = upcoming_events['time_to_next_meeting'
 calendar_gaps = upcoming_events[['end', 'time_to_next_meeting']]
 # Only look at gaps with a relevant length
 calendar_gaps = calendar_gaps[calendar_gaps['time_to_next_meeting'] >= MEETING_DURATION]
+result = ''
 for date in calendar_gaps['end'].dt.date.unique():
     day_of_week = calendar.day_name[date.weekday()]
     if day_of_week not in ['Saturday', 'Sunday']:
-        print(day_of_week, date)
+        result += f'\n{day_of_week} {date}\n'
         gaps_on_date = calendar_gaps[
             calendar_gaps['end'].dt.date == date
         ]
@@ -113,4 +115,6 @@ for date in calendar_gaps['end'].dt.date.unique():
             gap_start_str = f'{gap_on_date.end.hour}:{gap_on_date.end.minute}'
             gap_end = gap_on_date.end + gap_on_date.time_to_next_meeting
             gap_end_str = datetime.strftime(gap_end, '%H:%M')
-            print(datetime.strftime(gap_on_date.end, '%H:%M'), '-', gap_end_str)
+            result += f'{datetime.strftime(gap_on_date.end, "%H:%M")}-{gap_end_str}\n'
+
+pyperclip.copy(result)
