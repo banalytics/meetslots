@@ -1,16 +1,16 @@
 import os
-
+import calendar
 from datetime import datetime, timedelta
-from dateutil.parser import parse
-
 import pandas as pd
 from gcsa.google_calendar import GoogleCalendar
 from dotenv import load_dotenv
+
 
 # Working hours are not accessible through the gcsa library
 # TODO: Find a better way or submit a PR to gcsa
 START_OF_BUSINESS = timedelta(hours=8, minutes=30)
 END_OF_BUSINESS = timedelta(hours=18, minutes=30)
+MEETING_DURATION = timedelta(minutes=30)
 
 
 def generate_business_boundary_series(
@@ -34,12 +34,12 @@ def generate_business_boundary_series(
 
 
 load_dotenv('.env')
-calendar = GoogleCalendar(os.getenv('EMAIL'), credentials_path='credentials.json')
+calendar_object = GoogleCalendar(os.getenv('EMAIL'), credentials_path='credentials.json')
 
 start_time = datetime.utcnow()
 end_time = start_time + timedelta(days=14)
 
-upcoming_events = calendar.get_events(
+upcoming_events = calendar_object.get_events(
     time_min=start_time,
     time_max=end_time,
     order_by='startTime',
@@ -51,6 +51,13 @@ upcoming_events = pd.DataFrame([event.__dict__ for event in upcoming_events])
 # We want to extract gaps between meetings, just a basic timestamp diff doesn't account for working hours, thus we will
 # insert artificial events lasting from the start until the end of the business hours to simplify processing
 majority_timezone = upcoming_events['timezone'].value_counts().index[0]
+upcoming_events['start'] = upcoming_events['start'].dt.tz_convert(
+        majority_timezone
+)
+
+upcoming_events['end'] = upcoming_events['end'].dt.tz_convert(
+        majority_timezone
+)
 
 business_ends = generate_business_boundary_series(
     start_time,
@@ -92,6 +99,18 @@ upcoming_events['time_to_next_meeting'] = upcoming_events['time_to_next_meeting'
 )
 
 calendar_gaps = upcoming_events[['end', 'time_to_next_meeting']]
+# Only look at gaps with a relevant length
+calendar_gaps = calendar_gaps[calendar_gaps['time_to_next_meeting'] >= MEETING_DURATION]
+for date in calendar_gaps['end'].dt.date.unique():
+    day_of_week = calendar.day_name[date.weekday()]
+    if day_of_week not in ['Saturday', 'Sunday']:
+        print(day_of_week, date)
+        gaps_on_date = calendar_gaps[
+            calendar_gaps['end'].dt.date == date
+        ]
 
-
-
+        for gap_on_date in gaps_on_date.itertuples():
+            gap_start_str = f'{gap_on_date.end.hour}:{gap_on_date.end.minute}'
+            gap_end = gap_on_date.end + gap_on_date.time_to_next_meeting
+            gap_end_str = datetime.strftime(gap_end, '%H:%M')
+            print(datetime.strftime(gap_on_date.end, '%H:%M'), '-', gap_end_str)
