@@ -110,15 +110,18 @@ class GapFinder:
                 self.upcoming_events['end']
         )
 
-        # Overlapping meetings reslt in negative values, need to cap the diff
+        # Overlapping meetings result in negative values, need to cap the diff
         self.upcoming_events['time_to_next_meeting'] = self.upcoming_events['time_to_next_meeting'].apply(
             lambda x: max(x, timedelta(seconds=0))
         )
 
         self.calendar_gaps = self.upcoming_events[['end', 'time_to_next_meeting']]
         self.calendar_gaps.rename(columns={'end': 'gap_start'}, inplace=True)
+
         # Only look at gaps with a relevant length
-        self.calendar_gaps = self.calendar_gaps[self.calendar_gaps['time_to_next_meeting'] >= DEFAULT_MEETING_DURATION]
+        self.calendar_gaps = self.calendar_gaps[
+            self.calendar_gaps['time_to_next_meeting'] >= self.desired_meeting_duration
+            ]
 
     def format_result(self):
         for date in self.calendar_gaps['gap_start'].dt.date.unique():
