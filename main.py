@@ -1,5 +1,7 @@
 import argparse
 import calendar
+
+import numpy as np
 import pyperclip
 from datetime import datetime, timedelta
 from dateutil.parser import parse
@@ -78,6 +80,22 @@ class GapFinder:
 
         return upcoming_events
 
+    def handle_ooo_periods(self):
+        # Remove gaps that fall into out of office events
+        out_of_office_events = self.upcoming_events[
+            self.upcoming_events['other'].dropna().apply(lambda x: x['eventType']) == 'outOfOffice'
+        ]
+
+        for index, out_of_office_event in out_of_office_events.iterrows():
+            self.calendar_gaps = self.calendar_gaps[
+                np.logical_not(
+                    np.logical_and(
+                        self.calendar_gaps['gap_start'] >= out_of_office_event['start'],
+                        self.calendar_gaps['gap_start'] + self.calendar_gaps['time_to_next_meeting'] <=
+                        out_of_office_event['end'])
+                )
+            ]
+
     def process_data(self):
         business_ends = self.generate_business_boundary_series(
             self.work_end,
@@ -118,6 +136,8 @@ class GapFinder:
         self.calendar_gaps = self.upcoming_events[['end', 'time_to_next_meeting']]
         self.calendar_gaps.rename(columns={'end': 'gap_start'}, inplace=True)
 
+        self.handle_ooo_periods()
+
         # Only look at gaps with a relevant length
         self.calendar_gaps = self.calendar_gaps[
             self.calendar_gaps['time_to_next_meeting'] >= self.desired_meeting_duration
@@ -133,7 +153,6 @@ class GapFinder:
                 ]
 
                 for gap_on_date in gaps_on_date.itertuples():
-                    gap_start_str = f'{gap_on_date.gap_start.hour}:{gap_on_date.gap_start.minute}'
                     gap_end = gap_on_date.gap_start + gap_on_date.time_to_next_meeting
                     gap_end_str = datetime.strftime(gap_end, '%H:%M')
                     self.result += f'{datetime.strftime(gap_on_date.gap_start, "%H:%M")}-{gap_end_str}\n'
