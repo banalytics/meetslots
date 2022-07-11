@@ -140,7 +140,7 @@ class GapFinder:
 
         # Only look at gaps with a relevant length
         self.calendar_gaps = self.calendar_gaps[
-            self.calendar_gaps['time_to_next_meeting'] >= self.desired_meeting_duration
+            self.calendar_gaps['time_to_next_meeting'] / np.timedelta64(1, "m") >= self.desired_meeting_duration
             ]
 
     def format_result(self):
@@ -226,7 +226,8 @@ if __name__ == "__main__":
     gap_finder = GapFinder(
         email=args['email'],
         start_time=start_time,
-        end_time=end_time
+        end_time=end_time,
+        desired_meeting_duration=args['meeting_duration']
     )
 
     gap_finder.find_suitable_gaps()
