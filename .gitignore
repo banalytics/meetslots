@@ -133,4 +133,5 @@ dmypy.json
 
 # Google OAuth credentials
 credentials.json
+expired.token.pickle
 token.pickle

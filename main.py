@@ -1,5 +1,6 @@
 import argparse
 import calendar
+import os
 
 import numpy as np
 import pyperclip
@@ -7,6 +8,7 @@ from datetime import datetime, timedelta
 from dateutil.parser import parse
 import pandas as pd
 from gcsa.google_calendar import GoogleCalendar
+import platform
 
 
 # Working hours are not accessible through the gcsa library
@@ -15,6 +17,23 @@ WORK_START = timedelta(hours=8, minutes=30)
 WORK_END = timedelta(hours=18, minutes=30)
 DEFAULT_MEETING_DURATION = timedelta(minutes=30)
 
+
+def creation_date(path_to_file):
+    """
+    Try to get the date that a file was created, falling back to when it was
+    last modified if that isn't possible.
+    See http://stackoverflow.com/a/39501288/1709587 for explanation.
+    """
+    if platform.system() == 'Windows':
+        return os.path.getctime(path_to_file)
+    else:
+        stat = os.stat(path_to_file)
+        try:
+            return stat.st_birthtime
+        except AttributeError:
+            # We're probably on Linux. No easy way to get creation dates here,
+            # so we'll settle for when its content was last modified.
+            return stat.st_mtime
 
 class GapFinder:
     def __init__(
@@ -26,6 +45,13 @@ class GapFinder:
             work_end: timedelta = WORK_END,
             desired_meeting_duration: timedelta = DEFAULT_MEETING_DURATION,
     ):
+        if 'token.pickle' in os.listdir():
+            oath_token_creation_date = datetime.utcfromtimestamp(
+                # This returns a UNIX timestamp
+                creation_date('token.pickle')
+            )
+            if (datetime.now() - datetime.utcfromtimestamp(creation_date('token.pickle'))).days > 6:
+                os.remove('token.pickle')
         self.email = email
         self.start_time = start_time
         self.end_time = end_time
