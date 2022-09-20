@@ -35,6 +35,7 @@ def creation_date(path_to_file):
             # so we'll settle for when its content was last modified.
             return stat.st_mtime
 
+
 class GapFinder:
     def __init__(
             self,
